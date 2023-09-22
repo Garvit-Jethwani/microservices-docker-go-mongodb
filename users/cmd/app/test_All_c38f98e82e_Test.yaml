@@ -17,19 +17,25 @@ config:
 scenarios:
   - name: "Successful API request"
     flow:
-      - get:
-          url: "/"
+      - post:
+          url: "/users"
+          json:
+            username: "{{ username }}"
+            email: "{{ email }}"
           headers:
             Content-Type: "application/json"
           expect:
-            - statusCode: 200
+            - statusCode: 201
             - hasProperty: "users"
             - hasProperty: "infoLog"
 
   - name: "API request with validation failure"
     flow:
-      - get:
-          url: "/invalid"
+      - post:
+          url: "/users"
+          json:
+            username: "invalid"
+            email: "invalid"
           headers:
             Content-Type: "application/json"
           expect:
@@ -37,8 +43,11 @@ scenarios:
 
   - name: "API request with edge case"
     flow:
-      - get:
-          url: "/?username=*&email=*"
+      - post:
+          url: "/users"
+          json:
+            username: "*"
+            email: "*"
           headers:
             Content-Type: "application/json"
           expect:
