@@ -1,0 +1,73 @@
+config:
+  target: "{{ $processEnvironment.API_HOST }}"
+  phases:
+    - duration: 60
+      arrivalRate: 20
+  plugins:
+    expect: {}
+  payload:
+    path: "test_All_c38f98e82e_Test.csv"
+    fields:
+      - "username"
+      - "email"
+    skipHeader: true
+  ensure:
+    p99: 200
+    maxErrorRate: 0
+
+scenarios:
+  - name: "Successful API request"
+    flow:
+      - post:
+          url: "/users"
+          json:
+            username: "{{ username }}"
+            email: "{{ email }}"
+          headers:
+            Content-Type: "application/json"
+          expect:
+            - statusCode: 201
+            - hasProperty: "user"
+            - hasProperty: "infoLog"
+          capture:
+            - json: "$.user.id"
+              as: "userId"
+
+  - name: "API request with validation failure"
+    flow:
+      - post:
+          url: "/users"
+          json:
+            username: "invalid"
+            email: "invalid"
+          headers:
+            Content-Type: "application/json"
+          expect:
+            - statusCode: 400
+            - hasProperty: "error"
+
+  - name: "API request with edge case"
+    flow:
+      - post:
+          url: "/users"
+          json:
+            username: "*"
+            email: "*"
+          headers:
+            Content-Type: "application/json"
+          expect:
+            - statusCode: 500
+            - hasProperty: "error"
+            
+  - name: "API request with existing user"
+    flow:
+      - post:
+          url: "/users"
+          json:
+            username: "{{ username }}"
+            email: "{{ email }}"
+          headers:
+            Content-Type: "application/json"
+          expect:
+            - statusCode: 409
+            - hasProperty: "error"
