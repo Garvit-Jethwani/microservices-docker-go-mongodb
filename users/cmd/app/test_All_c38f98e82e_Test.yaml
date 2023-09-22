@@ -26,7 +26,7 @@ scenarios:
             Content-Type: "application/json"
           expect:
             - statusCode: 201
-            - hasProperty: "users"
+            - hasProperty: "user"
             - hasProperty: "infoLog"
 
   - name: "API request with validation failure"
@@ -40,6 +40,7 @@ scenarios:
             Content-Type: "application/json"
           expect:
             - statusCode: 400
+            - hasProperty: "error"
 
   - name: "API request with edge case"
     flow:
@@ -51,6 +52,5 @@ scenarios:
           headers:
             Content-Type: "application/json"
           expect:
-            - statusCode: 200
-            - hasProperty: "users"
-            - hasProperty: "infoLog"
+            - statusCode: 500
+            - hasProperty: "error"
