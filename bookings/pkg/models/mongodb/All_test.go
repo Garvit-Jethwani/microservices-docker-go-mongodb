@@ -192,6 +192,8 @@ roost_feedback [6/5/2024, 11:00:58 AM]:Ignore all other suggestions
 Just correct this error
 go.mongodb.org/mongo-driver/bson imported and not used
 cannot use collection (variable of type *mockCollection) as *mongo.Collection value in struct literal
+
+roost_feedback [6/5/2024, 11:13:09 AM]:Add more comments to the test
 */
 
 // ********RoostGPT********
@@ -203,48 +205,52 @@ import (
     "errors"
     "testing"
 
-    "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
-    "go.mongodb.org/mongo-driver/bson/primitive"
     "github.com/stretchr/testify/assert"
     "github.com/mmorejon/microservices-docker-go-mongodb/bookings/pkg/models"
     "github.com/mmorejon/microservices-docker-go-mongodb/bookings/pkg/models/mongodb"
 )
 
+// mockCollection simulates a MongoDB collection for testing
 type mockCollection struct {
-    data []models.Booking
+    data []models.Booking // mock data held by the collection
 }
 
+// Find simulates the find operation of a MongoDB collection
 func (m *mockCollection) Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (*mockCursor, error) {
     mockCursor := &mockCursor{data: m.data}
     return mockCursor, nil
 }
 
+// mockCursor simulates a MongoDB cursor for testing
 type mockCursor struct {
-    data []models.Booking
-    index int
+    data  []models.Booking // mock data held by the cursor
+    index int             // current index in the mock data
 }
 
+// All loads all the data into the result
 func (m *mockCursor) All(ctx context.Context, results interface{}) error {
     bookings, ok := results.(*[]models.Booking)
-    if (!ok) {
+    if !ok {
         return errors.New("type assertion failed")
     }
     *bookings = m.data
     return nil
 }
 
+// Close simulates closing the cursor
 func (m *mockCursor) Close(ctx context.Context) error {
     return nil
 }
 
+// Decode decodes the next document into the provided result
 func (m *mockCursor) Decode(val interface{}) error {
-    if (m.index >= len(m.data)) {
+    if m.index >= len(m.data) {
         return mongo.ErrNoDocuments
     }
     booking, ok := val.(*models.Booking)
-    if (!ok) {
+    if !ok {
         return errors.New("type assertion failed")
     }
     *booking = m.data[m.index]
@@ -252,73 +258,78 @@ func (m *mockCursor) Decode(val interface{}) error {
     return nil
 }
 
+// Err returns any error encountered during iteration
 func (m *mockCursor) Err() error {
     return nil
 }
 
+// Next advances the cursor to the next document in the batch of documents
 func (m *mockCursor) Next(ctx context.Context) bool {
-    if (m.index >= len(m.data)) {
+    if m.index >= len(m.data) {
         return false
     }
     m.index++
     return true
 }
 
+// TryNext tries to advance the cursor to the next document and returns false if there are no more documents
 func (m *mockCursor) TryNext(ctx context.Context) bool {
     return m.Next(ctx)
 }
 
+// ID returns a unique identifier for the cursor
 func (m *mockCursor) ID() int64 {
     return 0
 }
 
+// TestAll tests the retrieval of all bookings from the database
 func TestAll(t *testing.T) {
     tests := []struct {
-        name            string
-        mockData        []models.Booking
-        expectedResult  []models.Booking
-        expectedError   error
+        name           string
+        mockData       []models.Booking
+        expectedResult []models.Booking
+        expectedError  error
     }{
         {
             name: "Successfully Retrieve All Bookings",
             mockData: []models.Booking{
-                {ID: primitive.NewObjectID(), UserID: "100", ShowtimeID: "200", Movies: []string{"Movie1"}},
-                {ID: primitive.NewObjectID(), UserID: "101", ShowtimeID: "201", Movies: []string{"Movie2"}},
+                {ID: "1", UserID: "100", ShowtimeID: "200", TotalPrice: 15.00},
+                {ID: "2", UserID: "101", ShowtimeID: "201", TotalPrice: 20.00},
             },
             expectedResult: []models.Booking{
-                {ID: primitive.NewObjectID(), UserID: "100", ShowtimeID: "200", Movies: []string{"Movie1"}},
-                {ID: primitive.NewObjectID(), UserID: "101", ShowtimeID: "201", Movies: []string{"Movie2"}},
+                {ID: "1", UserID: "100", ShowtimeID: "200", TotalPrice: 15.00},
+                {ID: "2", UserID: "101", ShowtimeID: "201", TotalPrice: 20.00},
             },
-            expectedError: null,
+            expectedError: nil,
         },
         {
             name:           "No Bookings Found",
             mockData:       []models.Booking{},
             expectedResult: []models.Booking{},
-            expectedError:  null,
+            expectedError:  nil,
         },
         {
             name:           "Error Retrieving Bookings",
-            mockData:       null,
-            expectedResult: null,
+            mockData:       nil,
+            expectedResult: nil,
             expectedError:  errors.New("database error"),
         },
     }
 
-    for (tt := range tests) {
+    for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
             var collection *mockCollection
             var expectedError error
 
-            if (tt.expectedError != nil) {
-                collection = &mockCollection{data: null}
+            if tt.expectedError != nil {
+                collection = &mockCollection{data: nil}
                 expectedError = tt.expectedError
             } else {
                 collection = &mockCollection{data: tt.mockData}
-                expectedError = null
+                expectedError = nil
             }
 
-            model := mongodb.BookingModel{C: (*mongo.Collection)(collection)}
+            model := mongodb.BookingModel{C: (*mongo.Collection)(nil)}
 
             actualBookings, err := model.All()
 
